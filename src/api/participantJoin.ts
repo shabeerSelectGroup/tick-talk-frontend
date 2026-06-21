@@ -45,13 +45,8 @@ export async function postParticipantJoin(form: JoinFormPayload): Promise<JoinRe
   }
 
   if (!res.ok || !body.success || body.data === null) {
-    const msg =
-      body.error?.message ??
-      (typeof (body as { detail?: unknown }).detail === 'object' &&
-      (body as { detail?: { message?: string } }).detail?.message
-        ? (body as { detail: { message: string } }).detail.message
-        : null) ??
-      `Join failed (${res.status})`
+    const detail = (body as unknown as { detail?: { message?: string } }).detail
+    const msg = body.error?.message ?? detail?.message ?? `Join failed (${res.status})`
     throw new Error(msg)
   }
 

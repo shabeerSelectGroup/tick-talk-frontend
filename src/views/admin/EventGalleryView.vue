@@ -4,7 +4,6 @@ import { useRoute } from 'vue-router'
 import { api, unwrap } from '@/api/client'
 import { getErrorMessage } from '@/utils/errors'
 import { selfieDisplayUrl } from '@/utils/selfieMedia'
-import { selfieDisplayUrl } from '@/utils/selfieMedia'
 
 const route = useRoute()
 const eventId = computed(() => Number(route.params.id))
@@ -58,7 +57,7 @@ onMounted(async () => {
         class="card overflow-hidden p-0"
       >
         <a
-          :href="resolveMediaUrl(s.image_url)"
+          :href="mediaSrc(s)"
           target="_blank"
           rel="noopener noreferrer"
           class="relative block aspect-square bg-slate-800"

@@ -2,7 +2,6 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminAuthStore } from '@/stores/adminAuth'
-import { getErrorMessage } from '@/utils/errors'
 import TickTalkLogo from '@/components/TickTalkLogo.vue'
 
 const adminAuth = useAdminAuthStore()

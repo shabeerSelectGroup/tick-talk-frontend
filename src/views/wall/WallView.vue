@@ -14,7 +14,6 @@ import type { EventPublic, LeaderboardEntry } from '@/types'
 import type { WallSelfie, WallStats, WallTask, WallTimer as WallTimerType } from '@/types/wall'
 import type { WsLeaderboardUpdated, WsSelfieUploaded } from '@/types/ws'
 import { resolveMediaUrl } from '@/utils/mediaUrl'
-import { selfieDisplayUrl } from '@/utils/selfieMedia'
 
 const route = useRoute()
 const eventCode = computed(() => String(route.params.eventCode || '').toUpperCase())

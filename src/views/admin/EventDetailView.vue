@@ -33,16 +33,6 @@ const modeLabel = computed(() =>
 
 onMounted(() => admin.fetchEvent(eventId.value))
 
-async function startEvent() {
-  actionError.value = ''
-  try {
-    await unwrap(await api.post(`/admin/events/${eventId.value}/start`))
-    await admin.fetchEvent(eventId.value)
-  } catch (e) {
-    actionError.value = getErrorMessage(e)
-  }
-}
-
 async function endEvent() {
   actionError.value = ''
   try {

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { api, unwrap } from '@/api/client'
-import EventModeBadge from '@/components/EventModeBadge.vue'
 import { useEventLive } from '@/composables/useEventLive'
 import { useEventMode } from '@/composables/useEventMode'
 import type { LeaderboardEntry } from '@/types'

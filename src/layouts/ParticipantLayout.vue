@@ -27,7 +27,6 @@ const showNav = computed(() => route.meta.requiresSession === true)
 const isJoinRoute = computed(() => route.meta.guest === true)
 const isTasksRoute = computed(() => route.name === 'tasks')
 const isImmersiveRoute = computed(() => route.name === 'task-flow')
-const showBottomNav = computed(() => showNav.value && !isImmersiveRoute.value)
 
 const myId = computed(() => eventStore.participant?.id)
 
