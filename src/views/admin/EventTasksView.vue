@@ -109,7 +109,14 @@ async function handleBulkImport(text: string) {
           Shared list for all participants · {{ tasksStore.tasks.length }} tasks
         </p>
       </div>
-
+      <div class="flex flex-wrap gap-2">
+        <button type="button" class="btn-secondary text-sm" @click="bulkOpen = true">
+          Bulk import
+        </button>
+        <button type="button" class="btn-primary text-sm" @click="openCreate">
+          Add task
+        </button>
+      </div>
     </div>
 
     <p v-if="success" class="rounded-lg bg-brand-600/20 px-3 py-2 text-sm text-brand-500">{{ success }}</p>
@@ -123,7 +130,24 @@ async function handleBulkImport(text: string) {
         :key="task.id"
         class="card flex gap-3"
       >
-
+        <div class="flex flex-col gap-1">
+          <button
+            type="button"
+            class="game-copy-btn min-h-8 min-w-8 px-2 text-xs font-bold"
+            :disabled="index === 0"
+            @click="move(task.id, 'up')"
+          >
+            ↑
+          </button>
+          <button
+            type="button"
+            class="game-copy-btn min-h-8 min-w-8 px-2 text-xs font-bold"
+            :disabled="index === tasksStore.tasks.length - 1"
+            @click="move(task.id, 'down')"
+          >
+            ↓
+          </button>
+        </div>
         <button
           type="button"
           class="min-w-0 flex-1 text-left"
@@ -141,6 +165,12 @@ async function handleBulkImport(text: string) {
         <div class="flex shrink-0 flex-col gap-2">
           <button type="button" class="text-sm font-bold text-amber-800" @click="openSubmissions(task)">
             View selfies
+          </button>
+          <button type="button" class="text-sm font-semibold text-amber-900/80" @click="openEdit(task)">
+            Edit
+          </button>
+          <button type="button" class="text-sm font-semibold text-red-800" @click="handleDelete(task)">
+            Delete
           </button>
         </div>
       </li>
