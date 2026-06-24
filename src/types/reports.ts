@@ -64,10 +64,5 @@ export const EXPORT_OPTIONS: ExportOption[] = [
     description: 'Participants, matches, and leaderboard in one file',
     format: 'Excel',
   },
-  {
-    type: 'zip_selfies',
-    label: 'All selfies',
-    description: 'ZIP archive of every uploaded selfie image',
-    format: 'ZIP',
-  },
+
 ]

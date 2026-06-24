@@ -187,6 +187,9 @@ function getExpandedSlotIndex(): number {
               decoding="async"
             />
             <div class="task-card-overlay"></div>
+            <div class="task-card-completed-text">
+              {{ slot.task.title }}
+            </div>
           </template>
           <!-- Task Text -->
           <template v-else>
@@ -491,9 +494,28 @@ function getExpandedSlotIndex(): number {
 .task-card-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.12), transparent);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0) 50%);
   border-radius: 1.5rem;
   pointer-events: none;
+}
+
+.task-card-completed-text {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  z-index: 10;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+  word-wrap: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* --- Modal Styles --- */

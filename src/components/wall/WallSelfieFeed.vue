@@ -133,11 +133,7 @@ function handleSwipe() {
           @touchend="onTouchEnd"
         >
           <!-- Top bar -->
-          <div class="flex items-center justify-between p-4 z-10 bg-gradient-to-b from-black/50 to-transparent">
-            <div class="text-white">
-              <p class="font-bold text-lg">{{ currentSelfie.display_name }}</p>
-              <p v-if="currentSelfie.task_title" class="text-sm text-white/70">{{ currentSelfie.task_title }}</p>
-            </div>
+          <div class="flex items-center justify-end p-4 z-10 bg-gradient-to-b from-black/50 to-transparent">
             <button
               type="button"
               class="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition"
@@ -165,6 +161,14 @@ function handleSwipe() {
               class="max-h-full max-w-full object-contain"
               @click.stop
             />
+
+            <!-- Info Overlay -->
+            <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent pt-20 pb-8 px-6 pointer-events-none flex flex-col items-center text-center">
+              <div class="text-white">
+                <p class="font-bold text-2xl md:text-4xl drop-shadow-lg">{{ currentSelfie.display_name }}</p>
+                <p v-if="currentSelfie.task_title" class="text-lg md:text-2xl text-white/90 mt-2 drop-shadow-md max-w-3xl">{{ currentSelfie.task_title }}</p>
+              </div>
+            </div>
 
             <!-- Next Button -->
             <button
