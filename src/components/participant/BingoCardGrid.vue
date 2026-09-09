@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { ParticipantTask } from '@/types'
 import type { BingoCardSlot, BingoSection } from '@/utils/bingoTasks'
 import { mergeShuffledBingoCards } from '@/utils/bingoTasks'
 import { isTaskCompleted } from '@/utils/taskStatus'
 import { selfieDisplayUrl } from '@/utils/selfieMedia'
 import { prewarmCamera } from '@/utils/cameraPrewarm'
+import SignaturePad from '@/components/participant/SignaturePad.vue'
+import { useTaskFlowStore } from '@/stores/taskFlow'
+import { useEventStore } from '@/stores/event'
+import { getErrorMessage } from '@/utils/errors'
 
 const props = defineProps<{
   sections: BingoSection[]
@@ -18,13 +22,31 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  select: [task: ParticipantTask]
+  select: [task: ParticipantTask, mode: 'photo' | 'name', emblem?: string]
+  completed: [
+    payload: {
+      taskId: number
+      imageUrl: string
+      thumbnailUrl: string | null
+    },
+  ]
   'nav-rank': []
   'nav-you': []
 }>()
 
 const cardSlots = ref<BingoCardSlot[]>([])
 const expandedSlot = ref<BingoCardSlot | null>(null)
+const detailView = ref<'prompt' | 'name'>('prompt')
+const partnerName = ref('')
+const signPadRef = ref<InstanceType<typeof SignaturePad> | null>(null)
+const nameError = ref('')
+const nameSubmitting = ref(false)
+const flowStore = useTaskFlowStore()
+const eventStore = useEventStore()
+
+const canSubmitName = computed(
+  () => partnerName.value.trim().length >= 2 && !nameSubmitting.value
+)
 
 watch(
   () => props.sections,
@@ -57,25 +79,83 @@ function onCellClick(slot: BingoCardSlot) {
   const locked = !props.canToggle || task.id < 0
 
   if (done) {
+    detailView.value = 'prompt'
     expandedSlot.value = slot
     return
   }
   if (locked) return
 
   void prewarmCamera()
+  detailView.value = 'prompt'
+  partnerName.value = ''
+  nameError.value = ''
   expandedSlot.value = slot
 }
 
 function closeDetail() {
   expandedSlot.value = null
+  detailView.value = 'prompt'
+  partnerName.value = ''
+  nameError.value = ''
+  signPadRef.value?.clear()
 }
 
-function startSelfie() {
+function openNameSign() {
   if (!expandedSlot.value) return
   const task = expandedSlot.value.task
   if (isTaskCompleted(task.status) || !props.canToggle || task.id < 0) return
+  nameError.value = ''
+  partnerName.value = ''
+  detailView.value = 'name'
+}
+
+function backToPrompt() {
+  detailView.value = 'prompt'
+  partnerName.value = ''
+  nameError.value = ''
+  signPadRef.value?.clear()
+}
+
+async function submitNameSign() {
+  const slot = expandedSlot.value
+  if (!slot || !canSubmitName.value) return
+  const task = slot.task
+  if (task.id < 0) {
+    nameError.value = 'Challenges are still syncing. Close and try again.'
+    return
+  }
+  nameSubmitting.value = true
+  nameError.value = ''
+  try {
+    await flowStore.completeTask(task.id, {
+      partner_name: partnerName.value.trim(),
+      partner_sign: signPadRef.value?.toDataURL() || undefined,
+    })
+    emit('completed', {
+      taskId: task.id,
+      imageUrl: '',
+      thumbnailUrl: null,
+    })
+    await eventStore.fetchMe()
+    closeDetail()
+  } catch (e) {
+    nameError.value = getErrorMessage(e)
+  } finally {
+    nameSubmitting.value = false
+  }
+}
+
+function startSelfie(mode: 'photo' | 'name' = 'photo') {
+  if (!expandedSlot.value) return
+  const task = expandedSlot.value.task
+  const emblem = expandedSlot.value.emblem
+  if (isTaskCompleted(task.status) || !props.canToggle || task.id < 0) return
+  if (mode === 'name') {
+    openNameSign()
+    return
+  }
   closeDetail()
-  emit('select', task)
+  emit('select', task, mode, emblem)
 }
 
 // Background color configurations for task cards
@@ -237,6 +317,44 @@ function getExpandedSlotIndex(): number {
 
             <!-- Detail Modal Body -->
             <div class="detail-body-container">
+              <!-- Name & sign form -->
+              <div v-if="detailView === 'name'" class="name-form">
+                <p v-if="nameError" class="name-error" role="alert">{{ nameError }}</p>
+                <label class="name-label" for="bingo-grid-partner-name">Their name</label>
+                <input
+                  id="bingo-grid-partner-name"
+                  v-model="partnerName"
+                  type="text"
+                  class="name-input"
+                  maxlength="120"
+                  autocomplete="name"
+                  placeholder="Who did you meet?"
+                />
+                <label class="name-label">
+                  Sign <span class="name-optional">(optional)</span>
+                </label>
+                <SignaturePad ref="signPadRef" />
+                <div class="action-buttons-grid">
+                  <button
+                    type="button"
+                    class="btn-back"
+                    :disabled="nameSubmitting"
+                    @click="backToPrompt"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-submit"
+                    :disabled="!canSubmitName"
+                    @click="submitNameSign"
+                  >
+                    {{ nameSubmitting ? 'Saving…' : 'Submit' }}
+                  </button>
+                </div>
+              </div>
+
+              <template v-else>
               <!-- Points/Marks badge if not completed -->
               <div
                 v-if="showPoints && (expandedSlot.task.points || 100) && !isTaskCompleted(expandedSlot.task.status)"
@@ -280,11 +398,20 @@ function getExpandedSlotIndex(): number {
                   v-if="!isTaskCompleted(expandedSlot.task.status) && canToggle && expandedSlot.task.id >= 0"
                   type="button"
                   class="btn-submit"
-                  @click="startSelfie"
+                  @click="startSelfie('photo')"
                 >
                   Take selfie
                 </button>
+                <button
+                  v-if="!isTaskCompleted(expandedSlot.task.status) && canToggle && expandedSlot.task.id >= 0"
+                  type="button"
+                  class="btn-gallery choose-btn-full"
+                  @click="openNameSign"
+                >
+                  Name &amp; sign
+                </button>
               </div>
+              </template>
             </div>
           </div>
         </div>
@@ -740,5 +867,71 @@ function getExpandedSlotIndex(): number {
 
 .action-buttons-grid.single-button {
   grid-template-columns: 1fr;
+}
+.choose-btn-full {
+  grid-column: 1 / -1;
+}
+.btn-gallery {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.25rem;
+  border-radius: 1rem;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  width: 100%;
+  background-color: #ffffff;
+  border: 2px solid #e2e8f0;
+  color: #475569 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+.btn-gallery:active {
+  transform: scale(0.98);
+  background-color: #f1f5f9;
+}
+
+.name-form {
+  width: 100%;
+}
+.name-label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #475569;
+}
+.name-optional {
+  font-weight: 600;
+  text-transform: none;
+  color: #94a3b8;
+}
+.name-input {
+  width: 100%;
+  margin-bottom: 1rem;
+  border-radius: 1rem;
+  border: 2px solid #e2e8f0;
+  background: #ffffff;
+  padding: 0.9rem 1rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+  box-sizing: border-box;
+}
+.name-input:focus {
+  outline: none;
+  border-color: #14b8a6;
+}
+.name-error {
+  margin: 0 0 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.75rem;
+  background: #fee2e2;
+  color: #ef4444;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
 }
 </style>

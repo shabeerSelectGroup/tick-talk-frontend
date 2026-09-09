@@ -56,11 +56,12 @@ export const useTaskFlowStore = defineStore('taskFlow', () => {
     return unwrap<SelfieUploadInfo>(response)
   }
 
-  async function completeTask(participantTaskId: number, selfieId: number) {
+  async function completeTask(
+    participantTaskId: number,
+    payload: { selfie_id?: number; partner_name?: string; partner_sign?: string },
+  ) {
     return unwrap<TaskCompleteResult>(
-      await api.post(`/participant/tasks/${participantTaskId}/flow/complete`, {
-        selfie_id: selfieId,
-      })
+      await api.post(`/participant/tasks/${participantTaskId}/flow/complete`, payload)
     )
   }
 

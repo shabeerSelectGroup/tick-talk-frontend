@@ -62,6 +62,7 @@ export interface TaskCompleteResult {
   match_id: number | null
   selfie_id: number
   partner_name: string | null
+  partner_sign?: string | null
   all_tasks_completed?: boolean
   leaderboard_unlocked?: boolean
 }

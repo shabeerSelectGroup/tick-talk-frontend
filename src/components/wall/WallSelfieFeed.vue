@@ -115,6 +115,9 @@ function handleSwipe() {
         <p class="truncate font-bold text-amber-50" :class="large ? 'text-lg' : 'text-sm'">
           {{ s.display_name }}
         </p>
+        <p v-if="s.partner_name" class="truncate text-xs text-amber-100/80">
+          with {{ s.partner_name }}
+        </p>
         <p v-if="s.company" class="truncate text-xs text-amber-100/60">{{ s.company }}</p>
       </div>
     </article>
@@ -166,6 +169,9 @@ function handleSwipe() {
             <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent pt-20 pb-8 px-6 pointer-events-none flex flex-col items-center text-center">
               <div class="text-white">
                 <p class="font-bold text-2xl md:text-4xl drop-shadow-lg">{{ currentSelfie.display_name }}</p>
+                <p v-if="currentSelfie.partner_name" class="text-base md:text-xl text-white/80 mt-1 drop-shadow-md">
+                  with {{ currentSelfie.partner_name }}
+                </p>
                 <p v-if="currentSelfie.task_title" class="text-lg md:text-2xl text-white/90 mt-2 drop-shadow-md max-w-3xl">{{ currentSelfie.task_title }}</p>
               </div>
             </div>

@@ -19,7 +19,6 @@ const links = computed(() => {
   const base = [
     { name: 'admin-event-tasks', label: 'Tasks' },
     { name: 'admin-event-participants', label: 'Participants' },
-    { name: 'admin-event-reports', label: 'Reports' },
   ]
   if (ev.value?.mode === 'competition') {
     base.splice(2, 0, { name: 'admin-event-leaderboard', label: 'Leaderboard' })

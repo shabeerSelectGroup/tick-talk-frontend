@@ -120,7 +120,14 @@ async function startTaskAction(task: ParticipantTask) {
   }
 }
 
-function openSelfieChallenge(task: ParticipantTask) {
+const selfieStartMode = ref<'choose' | 'photo' | 'name'>('choose')
+const selfieEmblem = ref<string | undefined>()
+
+function openSelfieChallenge(
+  task: ParticipantTask,
+  mode: 'photo' | 'name' | 'choose' = 'choose',
+  emblem?: string,
+) {
   if (!canToggle.value) return
   if (task.id < 0) {
     error.value = 'Syncing challenges… refresh in a moment or re-open this page.'
@@ -129,6 +136,8 @@ function openSelfieChallenge(task: ParticipantTask) {
   }
   if (isTaskCompleted(task.status)) return
   void prewarmCamera()
+  selfieStartMode.value = mode
+  selfieEmblem.value = emblem
   activeSelfieTask.value = task
   bingoModalOpen.value = true
 }
@@ -136,6 +145,8 @@ function openSelfieChallenge(task: ParticipantTask) {
 function closeSelfieModal() {
   bingoModalOpen.value = false
   activeSelfieTask.value = null
+  selfieStartMode.value = 'choose'
+  selfieEmblem.value = undefined
 }
 
 async function onSelfieChallengeCompleted(payload: {
@@ -146,8 +157,12 @@ async function onSelfieChallengeCompleted(payload: {
   error.value = ''
   tasksStore.patchTaskSelfie(payload.taskId, {
     status: 'completed',
-    selfie_image_url: payload.imageUrl,
-    selfie_thumbnail_url: payload.thumbnailUrl,
+    ...(payload.imageUrl
+      ? {
+          selfie_image_url: payload.imageUrl,
+          selfie_thumbnail_url: payload.thumbnailUrl,
+        }
+      : {}),
   })
   // Refresh in background so the card keeps the photo immediately
   void tasksStore.fetchTasks().then(() => eventStore.fetchMe()).catch((e) => {
@@ -222,6 +237,7 @@ async function onSelfieChallengeCompleted(payload: {
       :show-points="showTaskPoints && isCompetition"
       :show-leaderboard="eventStore.showLeaderboard"
       @select="openSelfieChallenge"
+      @completed="onSelfieChallengeCompleted"
       @nav-rank="emit('open-leaderboard')"
       @nav-you="emit('open-profile')"
     />
@@ -325,6 +341,8 @@ async function onSelfieChallengeCompleted(payload: {
     <BingoSelfieModal
       :open="bingoModalOpen"
       :task="activeSelfieTask"
+      :start-mode="selfieStartMode"
+      :emblem="selfieEmblem"
       @close="closeSelfieModal"
       @completed="onSelfieChallengeCompleted"
     />

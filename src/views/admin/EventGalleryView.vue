@@ -14,6 +14,8 @@ interface GallerySelfie {
   thumbnail_url: string
   status: string
   participant_id: number
+  partner_name?: string | null
+  partner_sign?: string | null
 }
 
 const selfies = ref<GallerySelfie[]>([])
@@ -79,7 +81,10 @@ onMounted(async () => {
           </div>
         </a>
         <p class="border-t border-slate-800 px-2 py-1.5 text-xs capitalize text-slate-400">
-          {{ s.status }}
+          <span>{{ s.status }}</span>
+          <span v-if="s.partner_name" class="mt-0.5 block truncate normal-case text-slate-300">
+            {{ s.partner_name }}
+          </span>
         </p>
       </article>
     </div>

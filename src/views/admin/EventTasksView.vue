@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import BulkImportModal from '@/components/admin/BulkImportModal.vue'
 import TaskFormModal from '@/components/admin/TaskFormModal.vue'
 import TaskSubmissionsModal from '@/components/admin/TaskSubmissionsModal.vue'
 import { useAdminStore } from '@/stores/admin'
@@ -17,7 +16,6 @@ const eventId = computed(() => Number(route.params.id))
 const error = ref('')
 const success = ref('')
 const formOpen = ref(false)
-const bulkOpen = ref(false)
 const editingTask = ref<EventTask | null>(null)
 const submissionsTask = ref<EventTask | null>(null)
 const submissionsOpen = ref(false)
@@ -30,15 +28,15 @@ onMounted(async () => {
   await tasksStore.fetchTasks(eventId.value)
 })
 
-// function openCreate() {
-//   editingTask.value = null
-//   formOpen.value = true
-// }
+function openCreate() {
+  editingTask.value = null
+  formOpen.value = true
+}
 
-// function openEdit(task: EventTask) {
-//   editingTask.value = task
-//   formOpen.value = true
-// }
+function openEdit(task: EventTask) {
+  editingTask.value = task
+  formOpen.value = true
+}
 
 function openSubmissions(task: EventTask) {
   submissionsTask.value = task
@@ -64,40 +62,17 @@ async function handleSave(payload: TaskCreatePayload) {
   }
 }
 
-// async function handleDelete(task: EventTask) {
-//   if (!confirm(`Delete "${task.title}"?`)) return
-//   error.value = ''
-//   try {
-//     await tasksStore.deleteTask(eventId.value, task.id)
-//     success.value = 'Task deleted'
-//   } catch (e) {
-//     error.value = getErrorMessage(e)
-//   }
-// }
-
-// async function move(taskId: number, direction: 'up' | 'down') {
-//   const ids = tasksStore.moveTask(taskId, direction)
-//   if (!ids) return
-//   try {
-//     await tasksStore.reorderTasks(eventId.value, ids)
-//   } catch (e) {
-//     error.value = getErrorMessage(e)
-//   }
-// }
-
-async function handleBulkImport(text: string) {
+async function handleDelete(task: EventTask) {
+  if (!confirm(`Delete "${task.title}"?`)) return
   error.value = ''
   try {
-    const result = await tasksStore.bulkImport(eventId.value, text)
-    bulkOpen.value = false
-    success.value = `Imported ${result.created} tasks (${result.skipped_duplicates} duplicates skipped)`
-    if (result.errors.length) {
-      error.value = result.errors.join('; ')
-    }
+    await tasksStore.deleteTask(eventId.value, task.id)
+    success.value = 'Task deleted'
   } catch (e) {
     error.value = getErrorMessage(e)
   }
 }
+
 </script>
 
 <template>
@@ -110,9 +85,6 @@ async function handleBulkImport(text: string) {
         </p>
       </div>
       <div class="flex flex-wrap gap-2">
-        <button type="button" class="btn-secondary text-sm" @click="bulkOpen = true">
-          Bulk import
-        </button>
         <button type="button" class="btn-primary text-sm" @click="openCreate">
           Add task
         </button>
@@ -130,24 +102,6 @@ async function handleBulkImport(text: string) {
         :key="task.id"
         class="card flex gap-3"
       >
-        <div class="flex flex-col gap-1">
-          <button
-            type="button"
-            class="game-copy-btn min-h-8 min-w-8 px-2 text-xs font-bold"
-            :disabled="index === 0"
-            @click="move(task.id, 'up')"
-          >
-            ↑
-          </button>
-          <button
-            type="button"
-            class="game-copy-btn min-h-8 min-w-8 px-2 text-xs font-bold"
-            :disabled="index === tasksStore.tasks.length - 1"
-            @click="move(task.id, 'down')"
-          >
-            ↓
-          </button>
-        </div>
         <button
           type="button"
           class="min-w-0 flex-1 text-left"
@@ -187,7 +141,6 @@ async function handleBulkImport(text: string) {
       @close="formOpen = false"
       @save="handleSave"
     />
-    <BulkImportModal :open="bulkOpen" @close="bulkOpen = false" @import="handleBulkImport" />
     <TaskSubmissionsModal
       :open="submissionsOpen"
       :event-id="eventId"
