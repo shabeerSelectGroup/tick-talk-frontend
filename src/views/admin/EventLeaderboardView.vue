@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { api, unwrap } from '@/api/client'
+import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import type { AwardEntry, LeaderboardEntry } from '@/types'
 import { useAdminStore } from '@/stores/admin'
 
@@ -33,50 +34,59 @@ onMounted(async () => {
 
 <template>
   <div>
-    <h1 class="game-heading text-2xl">Leaderboard</h1>
-    <p class="game-muted mt-1 text-sm">
-      Total score (base + speed bonus per task) → tasks completed → earliest finish time
-    </p>
+    <AdminPageHeader
+      title="Leaderboard"
+      subtitle="Total score → tasks completed → earliest finish time"
+    />
 
-    <ol class="tt-stagger mt-6 space-y-2">
-      <li
-        v-for="entry in board"
-        :key="entry.participant_id"
-        class="game-leaderboard-row flex items-center gap-3 p-4"
-      >
-        <span class="game-leaderboard-rank shrink-0">
-          <span v-if="medal(entry.rank)">{{ medal(entry.rank) }}</span>
-          <span v-else>{{ entry.rank }}</span>
-        </span>
-        <div class="min-w-0 flex-1">
-          <p class="truncate font-bold">{{ entry.display_name }}</p>
-          <p class="text-xs opacity-75">
-            {{ entry.tasks_completed ?? 0 }} tasks
-            <span v-if="entry.is_finished"> · finished</span>
-          </p>
-        </div>
-        <span class="shrink-0 text-lg font-black text-amber-800">{{ entry.score }}</span>
-      </li>
-      <li v-if="!board.length" class="game-muted py-8 text-center text-sm">
-        No scores yet.
-      </li>
-    </ol>
+    <div class="admin-panel mb-6">
+      <div class="admin-table-wrap border-0 shadow-none">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th class="w-16">Rank</th>
+              <th>Participant</th>
+              <th>Tasks</th>
+              <th class="text-right">Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="entry in board" :key="entry.participant_id">
+              <td class="text-lg font-bold">
+                <span v-if="medal(entry.rank)">{{ medal(entry.rank) }}</span>
+                <span v-else>{{ entry.rank }}</span>
+              </td>
+              <td>
+                <p class="font-semibold">{{ entry.display_name }}</p>
+                <p v-if="entry.is_finished" class="text-xs text-slate-500">Finished</p>
+              </td>
+              <td class="text-slate-600">{{ entry.tasks_completed ?? 0 }}</td>
+              <td class="text-right text-lg font-bold text-indigo-600">{{ entry.score }}</td>
+            </tr>
+            <tr v-if="!board.length">
+              <td colspan="4" class="admin-empty">No scores yet.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
 
-    <section v-if="awards.length" class="card mt-8">
-      <h2 class="font-black text-amber-900">Awards</h2>
-      <ul class="mt-3 space-y-2">
-        <li
-          v-for="a in awards"
-          :key="a.id"
-          class="game-stat-row text-sm"
-        >
-          <span>
-            <span class="font-black text-amber-800">#{{ a.place }}</span>
-            {{ a.display_name }}
-          </span>
-          <span class="font-bold text-amber-800">{{ a.score }} pts</span>
-        </li>
-      </ul>
+    <section v-if="awards.length" class="admin-panel">
+      <div class="admin-panel-header">
+        <h2 class="admin-panel-title">Awards</h2>
+      </div>
+      <div class="admin-panel-body">
+        <ul class="space-y-2">
+          <li
+            v-for="a in awards"
+            :key="a.id"
+            class="flex items-center justify-between rounded-lg border border-slate-100 px-4 py-3"
+          >
+            <span class="font-semibold">#{{ a.place }} {{ a.award_type }}</span>
+            <span class="text-slate-600">{{ a.score }} pts · {{ a.tasks_completed }} tasks</span>
+          </li>
+        </ul>
+      </div>
     </section>
   </div>
 </template>

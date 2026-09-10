@@ -2,6 +2,7 @@
 @import './animations.css';
 @import './game-theme.css';
 @import './game-theme-ticktalk.css';
+@import './admin-theme.css';
 @import './mobile-app.css';
 
 @theme {

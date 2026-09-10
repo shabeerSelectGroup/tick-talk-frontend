@@ -1,54 +1,75 @@
 <script setup lang="ts">
-import { RouterView, useRoute, useRouter } from 'vue-router'
-import { computed } from 'vue'
-import AdminBackNav from '@/components/admin/AdminBackNav.vue'
-import TickTalkLogo from '@/components/TickTalkLogo.vue'
+import { RouterView, useRoute } from 'vue-router'
+import { computed, ref, watch } from 'vue'
+import AdminSidebar from '@/components/admin/AdminSidebar.vue'
+import AdminTopbar from '@/components/admin/AdminTopbar.vue'
+import { useAdminStore } from '@/stores/admin'
 import { useAdminAuthStore } from '@/stores/adminAuth'
+import { useAdminNav } from '@/composables/useAdminNav'
 
 const route = useRoute()
-const router = useRouter()
 const adminAuth = useAdminAuthStore()
+const admin = useAdminStore()
+const { eventId, isEventRoute } = useAdminNav()
+
+const sidebarOpen = ref(false)
 
 const isAuthPage = computed(() =>
   route.name === 'admin-login' || route.name === 'admin-logout'
 )
 
-async function logout() {
-  await router.push({ name: 'admin-logout' })
-}
+watch(
+  () => route.fullPath,
+  () => {
+    sidebarOpen.value = false
+  }
+)
+
+watch(
+  [isEventRoute, eventId],
+  ([onEvent, id]) => {
+    if (onEvent && id && admin.currentEvent?.id !== id) {
+      void admin.fetchEvent(id)
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
-  <div class="game-theme game-theme--decor min-h-dvh">
-    <header
-      v-if="!isAuthPage && adminAuth.isAuthenticated"
-      class="game-admin-header sticky top-0 z-40 px-4 py-3 backdrop-blur"
-    >
-      <div class="mx-auto flex max-w-5xl items-center justify-between gap-4">
-        <router-link to="/admin/dashboard" class="flex items-center gap-4">
-          <div class="flex h-10 items-center justify-center rounded bg-white/95 px-2 shadow-sm">
-            <img src="/select-logo.png" alt="Select" class="h-8 brightness-0" />
-          </div>
-          <TickTalkLogo class="text-[0.65em]" />
-        </router-link>
-        <div class="flex items-center gap-3">
-          <div v-if="adminAuth.admin" class="hidden text-right sm:block">
-            <p class="text-sm font-medium text-slate-200">{{ adminAuth.admin.name }}</p>
-            <p class="text-xs font-bold text-brand-500">{{ adminAuth.roleLabel }}</p>
-          </div>
-          <button type="button" class="btn-primary text-sm" @click="logout">
-            Sign out
-          </button>
-        </div>
-      </div>
-    </header>
-    <main class="mx-auto max-w-5xl px-4 py-6">
-      <AdminBackNav v-if="!isAuthPage && adminAuth.isAuthenticated" />
+  <!-- Login / logout — centered card, no shell -->
+  <div v-if="isAuthPage" class="admin-shell min-h-dvh">
+    <main class="flex min-h-dvh items-center justify-center p-4">
       <RouterView v-slot="{ Component }">
         <Transition name="tt-page" mode="out-in">
           <component :is="Component" />
         </Transition>
       </RouterView>
     </main>
+  </div>
+
+  <!-- Sakai-style app shell -->
+  <div
+    v-else-if="adminAuth.isAuthenticated"
+    class="admin-shell"
+    :class="{ 'admin-shell--sidebar-open': sidebarOpen }"
+  >
+    <div
+      v-if="sidebarOpen"
+      class="admin-overlay lg:hidden"
+      aria-hidden="true"
+      @click="sidebarOpen = false"
+    />
+    <AdminSidebar :open="sidebarOpen" @close="sidebarOpen = false" />
+    <div class="admin-main">
+      <AdminTopbar @toggle-sidebar="sidebarOpen = !sidebarOpen" />
+      <main class="admin-content">
+        <RouterView v-slot="{ Component }">
+          <Transition name="tt-page" mode="out-in">
+            <component :is="Component" />
+          </Transition>
+        </RouterView>
+      </main>
+    </div>
   </div>
 </template>

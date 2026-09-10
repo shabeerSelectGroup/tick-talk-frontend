@@ -2,7 +2,6 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminAuthStore } from '@/stores/adminAuth'
-import TickTalkLogo from '@/components/TickTalkLogo.vue'
 
 const adminAuth = useAdminAuthStore()
 const router = useRouter()
@@ -36,43 +35,38 @@ async function submit() {
 </script>
 
 <template>
-  <div class="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4">
-    <div class="card space-y-6">
-      <div class="text-center">
-        <TickTalkLogo class="mb-4 text-[1.1em]" />
-        <p class="game-stat-label mt-2">Create events and teams.</p>
-      </div>
-
-      <form class="space-y-4" @submit.prevent="submit">
-        <div>
-          <label for="security-code" class="game-label mb-1 block">
-            Security code
-          </label>
-          <input
-            id="security-code"
-            v-model="securityCode"
-            type="password"
-            autocomplete="off"
-            autocapitalize="characters"
-            spellcheck="false"
-            class="input font-mono tracking-wide"
-            placeholder="ENTER ADMIN CODE..."
-            required
-          />
+  <div class="w-full max-w-md">
+    <div class="admin-panel">
+      <div class="admin-panel-body space-y-6">
+        <div class="text-center">
+          <img src="/icons/icon-192.png" alt="" class="mx-auto h-16 w-16 rounded-2xl" />
+          <h1 class="admin-page-title mt-4">TickTalk Admin</h1>
+          <p class="admin-muted mt-1">Sign in with your security code</p>
         </div>
 
-        <p v-if="error" class="game-error px-3 py-2 text-sm" role="alert">
-          {{ error }}
-        </p>
+        <form class="space-y-4" @submit.prevent="submit">
+          <div>
+            <label for="security-code" class="admin-label">Security code</label>
+            <input
+              id="security-code"
+              v-model="securityCode"
+              type="password"
+              autocomplete="off"
+              autocapitalize="characters"
+              spellcheck="false"
+              class="admin-input font-mono tracking-wide"
+              placeholder="Enter admin code"
+              required
+            />
+          </div>
 
-        <button type="submit" class="btn-primary w-full" :disabled="loading">
-          {{ loading ? 'Checking…' : 'Enter Admin →' }}
-        </button>
-      </form>
+          <p v-if="error" class="admin-alert admin-alert--error" role="alert">{{ error }}</p>
 
-      <p class="game-stat-label text-center text-xs">
-        Code is set in <code class="font-mono">backend/.env</code>
-      </p>
+          <button type="submit" class="admin-btn-primary w-full" :disabled="loading">
+            {{ loading ? 'Signing in…' : 'Sign in' }}
+          </button>
+        </form>
+      </div>
     </div>
   </div>
 </template>

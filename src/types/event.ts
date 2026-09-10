@@ -35,6 +35,14 @@ export interface EventCreatePayload {
   settings: EventSettingsInput
 }
 
+export interface EventUpdatePayload {
+  name?: string
+  description?: string | null
+  duration_minutes?: number
+  max_participants?: number | null
+  settings?: EventSettingsInput
+}
+
 export interface AdminEventDetail {
   id: number
   code: string

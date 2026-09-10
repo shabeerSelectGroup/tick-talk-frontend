@@ -62,27 +62,27 @@ function submit() {
 <template>
   <div
     v-if="open"
-    class="game-theme game-modal-backdrop fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center"
+    class="admin-modal-backdrop"
     @click.self="emit('close')"
   >
-    <div class="card w-full max-w-lg space-y-4" role="dialog">
+    <div class="admin-modal p-5 space-y-4" role="dialog">
       <h2 class="text-lg font-bold">{{ task ? 'Edit task' : 'Add task' }}</h2>
 
       <div>
-        <label class="game-label">Title *</label>
-        <input v-model="form.title" class="input mt-1" placeholder="Find someone who works in HR" />
+        <label class="admin-label">Title *</label>
+        <input v-model="form.title" class="admin-input" placeholder="Find someone who works in HR" />
       </div>
       <div>
-        <label class="game-label">Description</label>
+        <label class="admin-label">Description</label>
         <textarea
           v-model="form.description"
-          class="input mt-1 min-h-20 resize-none"
+          class="admin-input min-h-20 resize-none"
           placeholder="Optional instructions"
         />
       </div>
       <div>
-        <label class="game-label">Type</label>
-        <select v-model="form.type" class="input mt-1">
+        <label class="admin-label">Type</label>
+        <select v-model="form.type" class="admin-input">
           <option value="manual">Manual (networking prompt)</option>
           <option value="scan">Meet &amp; selfie (no QR)</option>
           <option value="selfie">Selfie</option>
@@ -90,19 +90,19 @@ function submit() {
         </select>
       </div>
       <div v-if="isCompetition">
-        <label class="game-label">Points</label>
-        <input v-model.number="form.points" type="number" min="0" class="input mt-1 w-28" />
+        <label class="admin-label">Points</label>
+        <input v-model.number="form.points" type="number" min="0" class="admin-input w-28" />
       </div>
       <label class="flex items-center gap-2 text-sm">
         <input v-model="form.is_required" type="checkbox" class="h-4 w-4 rounded" />
         Required task
       </label>
 
-      <p v-if="error" class="game-error px-3 py-2 text-sm">{{ error }}</p>
+      <p v-if="error" class="admin-alert admin-alert--error">{{ error }}</p>
 
       <div class="flex gap-2">
-        <button type="button" class="btn-secondary flex-1" @click="emit('close')">Cancel</button>
-        <button type="button" class="btn-primary flex-1" @click="submit">Save</button>
+        <button type="button" class="admin-btn-secondary flex-1" @click="emit('close')">Cancel</button>
+        <button type="button" class="admin-btn-primary flex-1" @click="submit">Save</button>
       </div>
     </div>
   </div>

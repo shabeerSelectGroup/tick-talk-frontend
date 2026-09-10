@@ -35,7 +35,7 @@ async function copy() {
   <div class="mt-1 flex items-center gap-2" :class="large ? '' : 'items-start'">
     <button
       type="button"
-      class="game-copy-field min-w-0 flex-1 px-3 py-2 text-left transition active:scale-[0.99]"
+      class="admin-copy-field min-w-0 flex-1 px-3 py-2 text-left transition active:scale-[0.99]"
       :class="
         mono
           ? large

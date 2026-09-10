@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import BulkImportModal from '@/components/admin/BulkImportModal.vue'
 import TaskFormModal from '@/components/admin/TaskFormModal.vue'
 import TaskSubmissionsModal from '@/components/admin/TaskSubmissionsModal.vue'
@@ -101,84 +102,88 @@ async function handleBulkImport(text: string) {
 </script>
 
 <template>
-  <div class="space-y-4">
-    <div class="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <h1 class="text-2xl font-bold">Tasks</h1>
-        <p class="text-sm text-slate-400">
-          Shared list for all participants · {{ tasksStore.tasks.length }} tasks
-        </p>
+  <div>
+    <AdminPageHeader
+      title="Tasks"
+      :subtitle="`Shared list for all participants · ${tasksStore.tasks.length} tasks`"
+    >
+      <template #actions>
+        <button type="button" class="admin-btn-secondary" @click="bulkOpen = true">
+          Bulk upload
+        </button>
+        <button type="button" class="admin-btn-primary" @click="openCreate">Add task</button>
+      </template>
+    </AdminPageHeader>
+
+    <p v-if="success" class="admin-alert admin-alert--success mb-4">{{ success }}</p>
+    <p v-if="error" class="admin-alert admin-alert--error mb-4">{{ error }}</p>
+
+    <div class="admin-panel">
+      <div v-if="tasksStore.loading" class="admin-empty">Loading tasks…</div>
+      <div v-else-if="!tasksStore.tasks.length" class="admin-empty">
+        No tasks yet. Add networking prompts like “Find someone who works in HR”.
       </div>
-      <div class="flex flex-wrap gap-2">
-        <button type="button" class="btn-secondary text-sm" @click="bulkOpen = true">
-          Bulk import
-        </button>
-        <button type="button" class="btn-primary text-sm" @click="openCreate">
-          Add task
-        </button>
+      <div v-else class="admin-table-wrap border-0 shadow-none">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th class="w-16">Order</th>
+              <th>Task</th>
+              <th>Type</th>
+              <th>Progress</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(task, index) in tasksStore.tasks" :key="task.id">
+              <td>
+                <div class="flex flex-col gap-0.5">
+                  <button
+                    type="button"
+                    class="admin-btn-ghost !min-h-7 !px-2"
+                    :disabled="index === 0"
+                    @click="move(task.id, 'up')"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    class="admin-btn-ghost !min-h-7 !px-2"
+                    :disabled="index === tasksStore.tasks.length - 1"
+                    @click="move(task.id, 'down')"
+                  >
+                    ↓
+                  </button>
+                </div>
+              </td>
+              <td>
+                <button type="button" class="text-left" @click="openSubmissions(task)">
+                  <p class="font-semibold text-indigo-600 hover:text-indigo-800">{{ task.title }}</p>
+                  <p v-if="task.description" class="text-xs text-slate-500">{{ task.description }}</p>
+                </button>
+              </td>
+              <td class="capitalize text-slate-600">
+                {{ task.type }}
+                <span v-if="isCompetition && task.points" class="text-slate-400"> · {{ task.points }} pts</span>
+              </td>
+              <td class="text-slate-600">
+                {{ task.completed_count }}/{{ task.assigned_count }} done
+                · {{ task.selfie_count ?? 0 }} selfies
+              </td>
+              <td class="text-right">
+                <div class="flex justify-end gap-1">
+                  <button type="button" class="admin-btn-ghost" @click="openSubmissions(task)">Selfies</button>
+                  <button type="button" class="admin-btn-ghost" @click="openEdit(task)">Edit</button>
+                  <button type="button" class="admin-btn-ghost !text-red-600" @click="handleDelete(task)">
+                    Delete
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
-
-    <p v-if="success" class="rounded-lg bg-brand-600/20 px-3 py-2 text-sm text-brand-500">{{ success }}</p>
-    <p v-if="error" class="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">{{ error }}</p>
-
-    <p v-if="tasksStore.loading" class="text-slate-400">Loading tasks…</p>
-
-    <ul v-else class="space-y-3">
-      <li
-        v-for="(task, index) in tasksStore.tasks"
-        :key="task.id"
-        class="card flex gap-3"
-      >
-        <div class="flex flex-col gap-1">
-          <button
-            type="button"
-            class="game-copy-btn min-h-8 min-w-8 px-2 text-xs font-bold"
-            :disabled="index === 0"
-            @click="move(task.id, 'up')"
-          >
-            ↑
-          </button>
-          <button
-            type="button"
-            class="game-copy-btn min-h-8 min-w-8 px-2 text-xs font-bold"
-            :disabled="index === tasksStore.tasks.length - 1"
-            @click="move(task.id, 'down')"
-          >
-            ↓
-          </button>
-        </div>
-        <button
-          type="button"
-          class="min-w-0 flex-1 text-left"
-          @click="openSubmissions(task)"
-        >
-          <p class="font-bold text-amber-950 hover:text-amber-800">{{ task.title }}</p>
-          <p v-if="task.description" class="game-stat-label mt-1">{{ task.description }}</p>
-          <p class="game-stat-label mt-2 text-xs">
-            {{ task.type }}
-            <span v-if="isCompetition && task.points"> · {{ task.points }} pts</span>
-            · {{ task.completed_count }}/{{ task.assigned_count }} completed
-            · {{ task.selfie_count ?? 0 }} selfies
-          </p>
-        </button>
-        <div class="flex shrink-0 flex-col gap-2">
-          <button type="button" class="text-sm font-bold text-amber-800" @click="openSubmissions(task)">
-            View selfies
-          </button>
-          <button type="button" class="text-sm font-semibold text-amber-900/80" @click="openEdit(task)">
-            Edit
-          </button>
-          <button type="button" class="text-sm font-semibold text-red-800" @click="handleDelete(task)">
-            Delete
-          </button>
-        </div>
-      </li>
-    </ul>
-
-    <p v-if="!tasksStore.loading && !tasksStore.tasks.length" class="text-center text-slate-500 py-8">
-      No tasks yet. Add networking prompts like “Find someone who works in HR”.
-    </p>
 
     <TaskFormModal
       :open="formOpen"

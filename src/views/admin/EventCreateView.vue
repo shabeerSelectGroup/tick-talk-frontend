@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useEventCreateForm } from '@/composables/useEventCreateForm'
 import { useAdminStore } from '@/stores/admin'
 import { getErrorMessage } from '@/utils/errors'
@@ -32,25 +33,26 @@ async function submit() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-2xl">
-    <h1 class="text-2xl font-bold">Create event</h1>
-    <p class="mt-1 text-sm text-slate-400">
-      Event code, join URL, and QR code are generated automatically.
-    </p>
+  <div class="mx-auto max-w-3xl">
+    <AdminPageHeader
+      title="Create event"
+      subtitle="Event code, join URL, and QR code are generated automatically."
+    />
 
-    <form class="mt-6 space-y-6" @submit.prevent="submit">
-      <!-- Basics -->
-      <section class="card space-y-4">
-        <h2 class="font-semibold text-brand-500">Event details</h2>
-
+    <form class="space-y-6" @submit.prevent="submit">
+      <section class="admin-panel">
+        <div class="admin-panel-header">
+          <h2 class="admin-panel-title">Event details</h2>
+        </div>
+        <div class="admin-panel-body space-y-4">
         <div>
-          <label for="name" class="text-sm text-slate-400">Event name *</label>
-          <input id="name" v-model="form.name" class="input mt-1" placeholder="Annual Team Summit" required />
-          <p v-if="errors.name" class="mt-1 text-sm text-red-400">{{ errors.name }}</p>
+          <label for="name" class="admin-label">Event name *</label>
+          <input id="name" v-model="form.name" class="admin-input" placeholder="Annual Team Summit" required />
+          <p v-if="errors.name" class="mt-1 text-sm text-red-600">{{ errors.name }}</p>
         </div>
 
         <div>
-          <label class="text-sm text-slate-400">Event mode *</label>
+          <label class="admin-label">Event mode *</label>
           <div class="mt-2 grid grid-cols-2 gap-3">
             <button
               type="button"
@@ -72,12 +74,15 @@ async function submit() {
             </button>
           </div>
         </div>
+        </div>
       </section>
 
-      <!-- Settings -->
-      <section class="card space-y-4">
-        <h2 class="font-semibold text-brand-500">Settings</h2>
-        <p v-if="errors.settings" class="text-sm text-red-400">{{ errors.settings }}</p>
+      <section class="admin-panel">
+        <div class="admin-panel-header">
+          <h2 class="admin-panel-title">Settings</h2>
+        </div>
+        <div class="admin-panel-body space-y-4">
+        <p v-if="errors.settings" class="admin-alert admin-alert--error">{{ errors.settings }}</p>
 
         <label
           class="flex items-center justify-between gap-4"
@@ -150,26 +155,26 @@ async function submit() {
 
         <template v-if="isCompetition">
           <div>
-            <label for="task_pts" class="text-sm text-slate-400">Mark per task (max)</label>
+            <label for="task_pts" class="admin-label">Mark per task (max)</label>
             <input
               id="task_pts"
               v-model.number="form.settings.task_completion_points"
               type="number"
               min="1"
               max="100"
-              class="input mt-1 w-32"
+              class="admin-input w-32"
             />
             <p class="mt-1 text-xs text-slate-500">100 = full marks per challenge (speed adjusts within this cap)</p>
           </div>
           <div>
-            <label for="points" class="text-sm text-slate-400">Bonus points per standalone scan</label>
+            <label for="points" class="admin-label">Bonus points per standalone scan</label>
             <input
               id="points"
               v-model.number="form.settings.scan_match_points"
               type="number"
               min="0"
               max="1000"
-              class="input mt-1 w-32"
+              class="admin-input w-32"
             />
           </div>
           <label class="flex items-center justify-between gap-4">
@@ -182,42 +187,37 @@ async function submit() {
           </label>
           <div v-if="form.settings.speed_bonus_enabled" class="grid gap-3 sm:grid-cols-2">
             <div>
-              <label class="text-sm text-slate-400">Speed range (pts within mark)</label>
+              <label class="admin-label">Speed range (pts within mark)</label>
               <input
                 v-model.number="form.settings.speed_bonus_max_points"
                 type="number"
                 min="0"
                 :max="(form.settings.task_completion_points ?? 100) - 1"
-                class="input mt-1 w-full"
+                class="admin-input w-full"
               />
             </div>
             <div>
-              <label class="text-sm text-slate-400">Bonus window (seconds)</label>
+              <label class="admin-label">Bonus window (seconds)</label>
               <input
                 v-model.number="form.settings.speed_bonus_window_seconds"
                 type="number"
                 min="30"
                 max="3600"
-                class="input mt-1 w-full"
+                class="admin-input w-full"
               />
             </div>
           </div>
         </template>
+        </div>
       </section>
 
-      <p v-if="submitError" class="rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-400" role="alert">
-        {{ submitError }}
-      </p>
+      <p v-if="submitError" class="admin-alert admin-alert--error" role="alert">{{ submitError }}</p>
 
       <div class="flex gap-3">
-        <button
-          type="button"
-          class="btn-secondary flex-1"
-          @click="router.push({ name: 'admin-events' })"
-        >
+        <button type="button" class="admin-btn-secondary flex-1" @click="router.push({ name: 'admin-events' })">
           Cancel
         </button>
-        <button type="submit" class="btn-primary flex-1" :disabled="loading">
+        <button type="submit" class="admin-btn-primary flex-1" :disabled="loading">
           {{ loading ? 'Creating…' : 'Create event' }}
         </button>
       </div>
@@ -251,10 +251,10 @@ async function submit() {
 
 /* Active State */
 .mode-button.is-active {
-  background-color: #ff4757;
-  border-color: #ff4757;
+  background-color: #6366f1;
+  border-color: #6366f1;
   color: #ffffff !important;
-  box-shadow: 0 4px 14px rgba(255, 71, 87, 0.4);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
 }
 
 .mode-title {

@@ -1,7 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { api, unwrap } from '@/api/client'
-import type { AdminEventDetail, EventCreatePayload, EventCreateResult } from '@/types/event'
+import type {
+  AdminEventDetail,
+  EventCreatePayload,
+  EventCreateResult,
+  EventUpdatePayload,
+} from '@/types/event'
 
 export const useAdminStore = defineStore('admin', () => {
   const events = ref<AdminEventDetail[]>([])
@@ -37,5 +42,24 @@ export const useAdminStore = defineStore('admin', () => {
     activity.value = await unwrap(await api.get(`/admin/events/${eventId}/activity`))
   }
 
-  return { events, currentEvent, activity, fetchEvents, fetchEvent, createEvent, fetchActivity }
+  async function updateEvent(id: number, payload: EventUpdatePayload) {
+    const detail = await unwrap<AdminEventDetail>(await api.patch(`/admin/events/${id}`, payload))
+    currentEvent.value = detail
+    const idx = events.value.findIndex((e) => e.id === id)
+    if (idx >= 0) {
+      events.value[idx] = { ...events.value[idx], ...detail }
+    }
+    return detail
+  }
+
+  return {
+    events,
+    currentEvent,
+    activity,
+    fetchEvents,
+    fetchEvent,
+    createEvent,
+    updateEvent,
+    fetchActivity,
+  }
 })

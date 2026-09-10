@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { api } from '@/api/client'
+import AdminPageHeader from '@/components/admin/AdminPageHeader.vue'
 import { useAdminStore } from '@/stores/admin'
 import { getErrorMessage } from '@/utils/errors'
 import type { ApiResponse } from '@/types'
@@ -36,7 +37,7 @@ function isValidEventId(): boolean {
 
 async function loadRoster() {
   if (!isValidEventId()) {
-    error.value = 'Invalid event. Open Participants from the event page in admin.'
+    error.value = 'Invalid event.'
     participants.value = []
     rosterTotal.value = 0
     return
@@ -82,64 +83,66 @@ async function refreshPage() {
 }
 
 onMounted(() => refreshPage())
-
 watch(eventId, () => refreshPage())
 </script>
 
 <template>
-  <div class="space-y-6">
-    <header>
-      <h1 class="text-2xl font-bold">Participants</h1>
-      <p class="mt-1 text-sm text-slate-400">
-        Everyone who joins this event on their phone appears here automatically.
-      </p>
-      <p v-if="joinHint" class="mt-2 font-mono text-sm text-brand-500">{{ joinHint }}</p>
-    </header>
-
-    <div
-      v-if="error"
-      class="rounded-lg border border-red-800/60 bg-red-950/40 px-4 py-3 text-sm text-red-300"
-      role="alert"
+  <div>
+    <AdminPageHeader
+      title="Participants"
+      subtitle="Everyone who joins this event on their phone appears here automatically."
     >
-      <p>{{ error }}</p>
-      <button type="button" class="mt-2 text-xs underline" @click="refreshPage">Retry loading roster</button>
-    </div>
-
-    <section>
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <h2 class="font-semibold">
-          Roster
-          <span class="text-slate-500">({{ rosterTotal || participants.length }})</span>
-        </h2>
-        <button type="button" class="text-xs text-brand-500 underline" :disabled="loading" @click="loadRoster">
+      <template #actions>
+        <button type="button" class="admin-btn-secondary" :disabled="loading" @click="loadRoster">
           {{ loading ? 'Loading…' : 'Refresh' }}
         </button>
+      </template>
+    </AdminPageHeader>
+
+    <p v-if="joinHint" class="admin-alert admin-alert--info mb-4 font-mono text-xs">{{ joinHint }}</p>
+    <p v-if="error" class="admin-alert admin-alert--error mb-4" role="alert">{{ error }}</p>
+
+    <div class="admin-panel">
+      <div class="admin-panel-header">
+        <h2 class="admin-panel-title">Roster ({{ rosterTotal || participants.length }})</h2>
       </div>
-      <p v-if="loading && !participants.length" class="mt-4 text-slate-400">Loading roster…</p>
-      <ul v-else class="mt-4 space-y-2 tt-stagger">
-        <li
-          v-for="p in participants"
-          :key="p.id"
-          class="card flex flex-wrap items-center justify-between gap-2"
-        >
-          <div>
-            <p class="font-bold">{{ p.display_name }}</p>
-            <p v-if="p.company" class="game-stat-label">{{ p.company }}</p>
-          </div>
-          <div class="flex items-center gap-3 text-sm">
-            <span
-              class="rounded-full px-2 py-0.5 text-xs font-semibold"
-              :class="p.signed_in ? 'bg-emerald-100 text-emerald-900' : 'bg-amber-100/80 text-amber-900'"
-            >
-              {{ p.signed_in ? 'Signed in' : 'Not signed in' }}
-            </span>
-            <span v-if="p.score != null && p.score > 0" class="font-black text-amber-800">{{ p.score }} pts</span>
-          </div>
-        </li>
-        <li v-if="!participants.length && !loading" class="text-slate-400">
-          No one on the roster yet. Share the join link — players appear here when they sign in.
-        </li>
-      </ul>
-    </section>
+      <div class="admin-table-wrap border-0 shadow-none">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Company</th>
+              <th>Status</th>
+              <th class="text-right">Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="p in participants" :key="p.id">
+              <td class="font-semibold">{{ p.display_name }}</td>
+              <td class="text-slate-500">{{ p.company || '—' }}</td>
+              <td>
+                <span
+                  class="admin-badge"
+                  :class="p.signed_in ? 'admin-badge--live' : 'admin-badge--draft'"
+                >
+                  {{ p.signed_in ? 'Signed in' : 'Offline' }}
+                </span>
+              </td>
+              <td class="text-right font-semibold">
+                {{ p.score != null && p.score > 0 ? `${p.score} pts` : '—' }}
+              </td>
+            </tr>
+            <tr v-if="!participants.length && !loading">
+              <td colspan="4" class="admin-empty">
+                No one on the roster yet. Share the join link from the event overview.
+              </td>
+            </tr>
+            <tr v-if="loading && !participants.length">
+              <td colspan="4" class="admin-empty">Loading roster…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </template>
