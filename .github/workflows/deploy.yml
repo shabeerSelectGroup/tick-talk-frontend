@@ -1,0 +1,62 @@
+name: Deploy UI
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-ticktalk-ui
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build and deploy TickTalk UI
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build production bundle
+        run: yarn build
+
+      - name: Pack dist for upload
+        run: tar czf dist.tar.gz -C dist .
+
+      - name: Upload bundle to server
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT != '' && secrets.SSH_PORT || 22 }}
+          source: dist.tar.gz
+          target: /tmp/ticktalk-ui-deploy
+
+      - name: Extract on server
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT != '' && secrets.SSH_PORT || 22 }}
+          script: |
+            set -euo pipefail
+            APP_DIST="/home/deploy/apps/ticktalk/dist"
+            mkdir -p "$APP_DIST"
+            tar xzf /tmp/ticktalk-ui-deploy/dist.tar.gz -C "$APP_DIST"
+            chown -R deploy:deploy "$APP_DIST"
+            rm -f /tmp/ticktalk-ui-deploy/dist.tar.gz
+            echo "Deployed UI to $APP_DIST ($(date -u +%Y-%m-%dT%H:%M:%SZ))"

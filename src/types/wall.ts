@@ -43,6 +43,9 @@ export interface WallSelfie {
   thumbnail_url: string
   uploaded_at: string | null
   status: string
+  partner_name?: string | null
+  partner_sign?: string | null
+  completion_method?: string | null
 }
 
 export interface WallPayload {

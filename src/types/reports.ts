@@ -1,8 +1,5 @@
 export type ExportType =
   | 'pdf_summary'
-  | 'excel_participants'
-  | 'excel_matches'
-  | 'excel_leaderboard'
   | 'excel_bundle'
   | 'zip_selfies'
 
@@ -38,25 +35,6 @@ export const EXPORT_OPTIONS: ExportOption[] = [
     label: 'Event summary',
     description: 'Overview metrics, top tasks, and leaderboard snapshot',
     format: 'PDF',
-  },
-  {
-    type: 'excel_participants',
-    label: 'Participants',
-    description: 'All participants with progress and scores',
-    format: 'Excel',
-  },
-  {
-    type: 'excel_matches',
-    label: 'Matches',
-    description: 'Every scan and connection record',
-    format: 'Excel',
-  },
-  {
-    type: 'excel_leaderboard',
-    label: 'Leaderboard',
-    description: 'Full ranked standings',
-    format: 'Excel',
-    competitionOnly: true,
   },
   {
     type: 'excel_bundle',

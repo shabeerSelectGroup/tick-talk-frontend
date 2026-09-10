@@ -32,10 +32,6 @@ function formatFinish(iso: string | null | undefined) {
 }
 
 async function load() {
-  if (!eventStore.isCompetition) {
-    error.value = 'Leaderboard is only available in competition mode'
-    return
-  }
   try {
     entries.value = await unwrap<LeaderboardEntry[]>(await api.get('/participant/leaderboard'))
     error.value = ''
@@ -65,10 +61,15 @@ onUnmounted(disconnect)
 <template>
   <div class="flex min-h-0 flex-1 flex-col gap-4 px-3 pb-4 pt-2 tt-animate-fade-in">
     <div>
-      <h1 class="game-heading text-2xl">Leaderboard</h1>
+      <h1 class="game-heading text-2xl">
+        {{ eventStore.isCompetition ? 'Leaderboard' : 'Participants' }}
+      </h1>
     </div>
-    <p class="game-muted text-xs">
+    <p v-if="eventStore.isCompetition" class="game-muted text-xs">
       Ranked by score, then tasks completed, then finish time
+    </p>
+    <p v-else class="game-muted text-xs">
+      Players who have joined this event
     </p>
     <p v-if="error" class="game-error px-3 py-2 text-sm" role="alert">
       {{ error }}
@@ -83,7 +84,7 @@ onUnmounted(disconnect)
         class="game-leaderboard-row flex items-center gap-3 p-4"
         :class="entry.participant_id === myId ? 'game-leaderboard-row--me' : ''"
       >
-        <span class="game-leaderboard-rank shrink-0">
+        <span v-if="eventStore.isCompetition" class="game-leaderboard-rank shrink-0">
           <span v-if="medal(entry.rank)">{{ medal(entry.rank) }}</span>
           <span v-else>{{ entry.rank }}</span>
         </span>

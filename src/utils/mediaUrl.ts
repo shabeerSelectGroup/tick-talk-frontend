@@ -3,7 +3,7 @@ import { resolveApiBaseUrl } from '@/api/resolveBaseUrl'
 function extractMediaPath(url: string): string | null {
   const trimmed = url.trim()
   if (trimmed.startsWith('/api/v1/media')) {
-    return trimmed.startsWith('/') ? trimmed : `/${trimmed}`
+    return trimmed
   }
   const match = trimmed.match(/\/api\/v1\/media\/[^\s?#]*/)
   return match ? match[0] : null
@@ -18,17 +18,15 @@ export function resolveMediaUrl(url: string | null | undefined): string {
   if (!url?.trim()) return ''
   const trimmed = url.trim()
 
-  if (/^https?:\/\//i.test(trimmed)) {
-    return trimmed
-  }
-
   const mediaPath = extractMediaPath(trimmed)
-  if (!mediaPath) return trimmed
-
-  const apiBase = resolveApiBaseUrl()
-  if (apiBase.startsWith('http')) {
-    return `${new URL(apiBase).origin}${mediaPath}`
+  if (mediaPath) {
+    const apiBase = resolveApiBaseUrl()
+    if (apiBase.startsWith('http')) {
+      return `${new URL(apiBase).origin}${mediaPath}`
+    }
+    return mediaPath
   }
 
-  return mediaPath
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  return trimmed
 }

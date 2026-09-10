@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SelfieCamera from '@/components/participant/SelfieCamera.vue'
+import SignaturePad from '@/components/participant/SignaturePad.vue'
 import { useEventMode } from '@/composables/useEventMode'
 import { useEventStore } from '@/stores/event'
 import { useTaskFlowStore } from '@/stores/taskFlow'
@@ -20,10 +21,14 @@ const flowStore = useTaskFlowStore()
 const participantTaskId = computed(() => Number(route.params.participantTaskId))
 const task = ref<ParticipantTask | null>(null)
 const step = ref<TaskFlowStep>('camera')
+const inputMode = ref<'choose' | 'photo' | 'name'>('choose')
+const partnerName = ref('')
+const signPadRef = ref<InstanceType<typeof SignaturePad> | null>(null)
 const error = ref('')
 const completionSummary = ref<{ points: number; speedBonus: number } | null>(null)
 
 const isBingoChallenge = computed(() => Boolean(task.value?.bingo))
+const canSubmitName = computed(() => partnerName.value.trim().length >= 2)
 
 const usesSelfieFlow = computed(
   () =>
@@ -97,7 +102,27 @@ onUnmounted(() => {
 })
 
 function goBack() {
+  if (step.value === 'camera' && inputMode.value !== 'choose') {
+    inputMode.value = 'choose'
+    return
+  }
   router.push({ name: 'tasks' })
+}
+
+async function finishFromResult(result: import('@/types/taskFlow').TaskCompleteResult) {
+  if (result.task_finished === false && result.target_count && result.target_count > 1) {
+    await tasksStore.fetchTasks()
+    router.push({ name: 'tasks' })
+    return
+  }
+
+  completionSummary.value = {
+    points: result.points_awarded,
+    speedBonus: result.speed_bonus ?? 0,
+  }
+  await tasksStore.fetchTasks()
+  await eventStore.fetchMe()
+  step.value = 'complete'
 }
 
 async function onSelfieCapture(blob: Blob) {
@@ -105,24 +130,31 @@ async function onSelfieCapture(blob: Blob) {
   error.value = ''
   try {
     const uploadInfo = await flowStore.uploadSelfie(participantTaskId.value, blob)
-    const result = await flowStore.completeTask(participantTaskId.value, uploadInfo.selfie_id)
-
-    if (result.task_finished === false && result.target_count && result.target_count > 1) {
-      await tasksStore.fetchTasks()
-      router.push({ name: 'tasks' })
-      return
-    }
-
-    completionSummary.value = {
-      points: result.points_awarded,
-      speedBonus: result.speed_bonus ?? 0,
-    }
-    await tasksStore.fetchTasks()
-    await eventStore.fetchMe()
-    step.value = 'complete'
+    const result = await flowStore.completeTask(participantTaskId.value, {
+      selfie_id: uploadInfo.selfie_id,
+    })
+    await finishFromResult(result)
   } catch (e) {
     error.value = getErrorMessage(e)
     step.value = 'camera'
+    inputMode.value = 'photo'
+  }
+}
+
+async function submitName() {
+  if (!canSubmitName.value) return
+  step.value = 'uploading'
+  error.value = ''
+  try {
+    const result = await flowStore.completeTask(participantTaskId.value, {
+      partner_name: partnerName.value.trim(),
+      partner_sign: signPadRef.value?.toDataURL() || undefined,
+    })
+    await finishFromResult(result)
+  } catch (e) {
+    error.value = getErrorMessage(e)
+    step.value = 'camera'
+    inputMode.value = 'name'
   }
 }
 </script>
@@ -138,9 +170,46 @@ async function onSelfieCapture(blob: Blob) {
       {{ error }}
     </p>
 
-    <!-- Camera (default for selfie tasks — no intro screen) -->
-    <div v-if="step === 'camera'" class="flex flex-1 flex-col">
-      <SelfieCamera @capture="onSelfieCapture" @error="(m) => (error = m)" />
+    <!-- Camera / name (selfie tasks) -->
+    <div v-if="step === 'camera'" class="flex flex-1 flex-col gap-4">
+      <div v-if="inputMode === 'choose'" class="mt-6 flex flex-col gap-3">
+        <button type="button" class="btn-primary min-h-14 w-full" @click="inputMode = 'photo'">
+          Take photo
+        </button>
+        <button type="button" class="btn-secondary min-h-14 w-full" @click="inputMode = 'name'">
+          Name &amp; sign
+        </button>
+      </div>
+
+      <div v-else-if="inputMode === 'name'" class="flex flex-col gap-3">
+        <label class="game-label" for="flow-partner-name">Their name</label>
+        <input
+          id="flow-partner-name"
+          v-model="partnerName"
+          type="text"
+          maxlength="120"
+          class="input"
+          placeholder="Who did you meet?"
+        />
+        <label class="game-label" id="flow-partner-sign-label">
+          Sign <span class="font-normal text-slate-400">(optional)</span>
+        </label>
+        <SignaturePad aria-labelledby="flow-partner-sign-label" ref="signPadRef" />
+        <button
+          type="button"
+          class="btn-primary mt-2 min-h-12 w-full"
+          :disabled="!canSubmitName"
+          @click="submitName"
+        >
+          Submit
+        </button>
+      </div>
+
+      <SelfieCamera
+        v-else
+        @capture="onSelfieCapture"
+        @error="(m) => (error = m)"
+      />
     </div>
 
     <!-- Non-selfie fallback (rare) -->

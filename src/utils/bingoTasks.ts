@@ -157,21 +157,23 @@ export function catalogAsParticipantTasks(): ParticipantTask[] {
 }
 
 export function mergeBingoTasks(apiTasks: ParticipantTask[]): ParticipantTask[] {
-  const bySlug = new Map(
-    apiTasks
-      .filter((t) => t.bingo || t.slug?.startsWith('bingo-'))
-      .map((t) => [t.slug ?? '', t])
-  )
+  const bingoApi = apiTasks.filter((t) => t.bingo || t.slug?.startsWith('bingo-'))
+  const bySlug = new Map(bingoApi.map((t) => [t.slug ?? '', t]))
   if (bySlug.size === 0) {
     return catalogAsParticipantTasks()
   }
-  return NETWORKING_BINGO_CATALOG.map((item, index) => {
+  const catalogSlugs = new Set(NETWORKING_BINGO_CATALOG.map((item) => item.slug))
+  const catalogTasks = NETWORKING_BINGO_CATALOG.map((item, index) => {
     const existing = bySlug.get(item.slug)
     if (existing) {
       return { ...existing, bingo: true, category: item.category }
     }
     return catalogAsParticipantTasks()[index]
   })
+  const extras = bingoApi
+    .filter((t) => t.id > 0 && !catalogSlugs.has(t.slug ?? ''))
+    .map((t) => ({ ...t, bingo: true, category: t.category ?? 'ice_breakers' }))
+  return [...catalogTasks, ...extras]
 }
 
 export function buildBingoSections(tasks: ParticipantTask[]): BingoSection[] {

@@ -15,6 +15,8 @@ interface GallerySelfie {
   thumbnail_url: string
   status: string
   participant_id: number
+  partner_name?: string | null
+  partner_sign?: string | null
 }
 
 const selfies = ref<GallerySelfie[]>([])
@@ -55,11 +57,7 @@ onMounted(async () => {
     </div>
 
     <div v-else class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-      <article
-        v-for="s in selfies"
-        :key="s.id"
-        class="admin-panel overflow-hidden !p-0"
-      >
+      <article v-for="s in selfies" :key="s.id" class="admin-panel overflow-hidden !p-0">
         <a :href="mediaSrc(s)" target="_blank" rel="noopener noreferrer" class="block aspect-square">
           <img
             v-if="!brokenIds.has(s.id)"
@@ -76,8 +74,11 @@ onMounted(async () => {
             Image unavailable
           </div>
         </a>
-        <div class="border-t border-slate-100 px-3 py-2 text-xs capitalize text-slate-500">
-          {{ s.status }}
+        <div class="border-t border-slate-100 px-3 py-2 text-xs text-slate-500">
+          <span class="capitalize">{{ s.status }}</span>
+          <span v-if="s.partner_name" class="mt-0.5 block truncate normal-case font-medium text-slate-700">
+            with {{ s.partner_name }}
+          </span>
         </div>
       </article>
     </div>

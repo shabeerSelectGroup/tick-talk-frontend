@@ -488,7 +488,7 @@ async function onGetStarted() {
   object-fit: contain;
   object-position: center bottom;
   filter: drop-shadow(0 16px 28px rgba(0, 0, 0, 0.15));
-  transform: translateY(-2rem); /* Move up a little more */
+  transform: translateY(0); /* Moved down normally */
 }
 
 .join-splash__actions {

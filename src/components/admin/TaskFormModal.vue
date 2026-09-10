@@ -16,7 +16,7 @@ const emit = defineEmits<{
 const form = reactive({
   title: '',
   description: '',
-  type: 'manual' as TaskType,
+  type: 'selfie' as TaskType,
   points: 0,
   is_required: true,
 })
@@ -37,7 +37,7 @@ watch(
     } else {
       form.title = ''
       form.description = ''
-      form.type = 'manual'
+      form.type = 'selfie'
       form.points = 0
       form.is_required = true
     }

@@ -15,6 +15,8 @@ export interface TaskSubmission {
   thumbnail_url: string
   status: string
   uploaded_at: string | null
+  partner_name?: string | null
+  partner_sign?: string | null
 }
 
 const props = defineProps<{
@@ -99,6 +101,9 @@ watch(
                 </a>
                 <div class="px-3 py-2">
                   <p class="truncate text-sm font-semibold">{{ s.display_name }}</p>
+                  <p v-if="s.partner_name" class="truncate text-xs text-slate-600">
+                    with {{ s.partner_name }}
+                  </p>
                   <p v-if="s.company" class="truncate text-xs text-slate-500">{{ s.company }}</p>
                 </div>
               </article>

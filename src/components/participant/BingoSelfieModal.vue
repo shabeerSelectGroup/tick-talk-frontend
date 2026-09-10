@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import SelfieCamera from '@/components/participant/SelfieCamera.vue'
+import SignaturePad from '@/components/participant/SignaturePad.vue'
 import { useRouter } from 'vue-router'
 import { useEventMode } from '@/composables/useEventMode'
 import { useEventStore } from '@/stores/event'
@@ -8,10 +9,16 @@ import { useTaskFlowStore } from '@/stores/taskFlow'
 import type { ParticipantTask } from '@/types'
 import { getErrorMessage } from '@/utils/errors'
 import { prewarmCamera } from '@/utils/cameraPrewarm'
+import { randomCardEmblem } from '@/utils/bingoTasks'
+
+type ModalStep = 'camera' | 'uploading' | 'complete' | 'error'
+type InputMode = 'choose' | 'photo' | 'name'
 
 const props = defineProps<{
   open: boolean
   task: ParticipantTask | null
+  startMode?: InputMode
+  emblem?: string
 }>()
 
 const emit = defineEmits<{
@@ -32,13 +39,31 @@ const flowStore = useTaskFlowStore()
 const lastPoints = ref<{ total: number; speed: number } | null>(null)
 const showLeaderboardPrompt = ref(false)
 
-type ModalStep = 'camera' | 'uploading' | 'complete' | 'error'
-
 const step = ref<ModalStep>('camera')
+const inputMode = ref<InputMode>('choose')
+const partnerName = ref('')
+const signPadRef = ref<InstanceType<typeof SignaturePad> | null>(null)
 const error = ref('')
 const processing = ref(false)
 
 const canSubmit = canCompleteTasks
+const canSubmitName = computed(
+  () => partnerName.value.trim().length >= 2 && !processing.value
+)
+const cardEmblem = computed(() => {
+  if (props.emblem) return props.emblem
+  if (!props.task) return '🦋'
+  return randomCardEmblem(props.task)
+})
+const taskPrompt = computed(() => {
+  const task = props.task
+  if (!task) return ''
+  if (task.description?.trim()) return task.description.trim()
+  return `Find someone who matches “${task.title}”, then take a selfie together.`
+})
+const cardMaxClass = computed(() =>
+  inputMode.value === 'photo' ? 'max-w-md' : 'max-w-[320px]'
+)
 
 const capturedBlob = ref<Blob | null>(null)
 const capturedUrl = ref<string | null>(null)
@@ -56,11 +81,18 @@ function handleGoBack() {
     }
     capturedBlob.value = null
     capturedUrl.value = null
-    // Reset camera in the child ref if it exists
     cameraRef.value?.retake()
-  } else {
-    close()
+    return
   }
+  if (inputMode.value !== 'choose') {
+    if (props.startMode && props.startMode !== 'choose') {
+      close()
+      return
+    }
+    inputMode.value = 'choose'
+    return
+  }
+  close()
 }
 
 function triggerGallery() {
@@ -87,6 +119,9 @@ watch(
     processing.value = false
     capturedBlob.value = null
     capturedUrl.value = null
+    inputMode.value = props.startMode ?? 'choose'
+    partnerName.value = ''
+    signPadRef.value?.clear()
     flowStore.reset()
 
     if (props.task.status === 'completed') {
@@ -123,8 +158,76 @@ function close() {
   }
   capturedBlob.value = null
   capturedUrl.value = null
+  inputMode.value = 'choose'
+  partnerName.value = ''
+  signPadRef.value?.clear()
   flowStore.reset()
   emit('close')
+}
+
+function choosePhoto() {
+  error.value = ''
+  inputMode.value = 'photo'
+}
+
+function chooseName() {
+  error.value = ''
+  inputMode.value = 'name'
+}
+
+async function submitName() {
+  if (!props.task || !canSubmitName.value) return
+  if (props.task.id < 0) {
+    error.value = 'Challenges are still syncing. Close this dialog, wait a moment, and tap the item again.'
+    step.value = 'error'
+    return
+  }
+  step.value = 'uploading'
+  processing.value = true
+  error.value = ''
+  try {
+    const result = await flowStore.completeTask(props.task.id, {
+      partner_name: partnerName.value.trim(),
+      partner_sign: signPadRef.value?.toDataURL() || undefined,
+    })
+    if (showTaskPoints.value && result.points_awarded > 0) {
+      lastPoints.value = {
+        total: result.points_awarded,
+        speed: result.speed_bonus ?? 0,
+      }
+    } else {
+      lastPoints.value = null
+    }
+    showLeaderboardPrompt.value = Boolean(
+      result.all_tasks_completed || result.leaderboard_unlocked
+    )
+    step.value = 'complete'
+    emit('completed', {
+      taskId: props.task.id,
+      imageUrl: '',
+      thumbnailUrl: null,
+    })
+    if (!showLeaderboardPrompt.value) {
+      window.setTimeout(() => close(), 1400)
+    }
+  } catch (e) {
+    const msg = getErrorMessage(e)
+    if (
+      (msg.toLowerCase().includes('event') && msg.toLowerCase().includes('ended')) ||
+      msg.toLowerCase().includes('finished') ||
+      (e as { response?: { data?: { detail?: { code?: string } } } })?.response?.data?.detail
+        ?.code === 'EVENT_ENDED'
+    ) {
+      error.value = 'This event has been finished by the admin.'
+      step.value = 'error'
+    } else {
+      error.value = msg
+      step.value = 'camera'
+      inputMode.value = 'name'
+    }
+  } finally {
+    processing.value = false
+  }
 }
 
 async function submitSelfie(blob: Blob) {
@@ -139,7 +242,9 @@ async function submitSelfie(blob: Blob) {
   error.value = ''
   try {
     const uploadInfo = await flowStore.uploadSelfie(props.task.id, blob)
-    const result = await flowStore.completeTask(props.task.id, uploadInfo.selfie_id)
+    const result = await flowStore.completeTask(props.task.id, {
+      selfie_id: uploadInfo.selfie_id,
+    })
     if (showTaskPoints.value && result.points_awarded > 0) {
       lastPoints.value = {
         total: result.points_awarded,
@@ -217,7 +322,8 @@ function getTaskColor(title: string) {
       >
         <!-- Modal Card -->
         <div
-          class="custom-modal-card w-full max-w-md max-h-[96dvh] overflow-y-auto rounded-3xl"
+          class="custom-modal-card w-full max-h-[96dvh] overflow-y-auto rounded-3xl"
+          :class="cardMaxClass"
           role="dialog"
           aria-modal="true"
           :aria-labelledby="'bingo-modal-title-' + task.id"
@@ -235,7 +341,7 @@ function getTaskColor(title: string) {
             </div>
           </div>
 
-          <!-- Step 1: Camera capture or preview -->
+          <!-- Step 1: Choose photo or name, then capture / form -->
           <div v-if="step === 'camera'" class="modal-content-container">
             <!-- Dynamic Color Task Card -->
             <div
@@ -250,55 +356,111 @@ function getTaskColor(title: string) {
               {{ error }}
             </p>
 
-            <!-- Live Camera (if no capture blob) -->
-            <div v-if="!capturedBlob" class="camera-wrapper">
-              <SelfieCamera
-                ref="cameraRef"
-                @capture="onSelfieCapture"
-                @error="(m) => { error = m }"
+            <div v-if="inputMode === 'choose'" class="detail-body-container">
+              <div
+                v-if="showTaskPoints && (task.points || 100)"
+                class="points-badge-row"
+              >
+                <span class="points-badge">{{ task.points || 100 }} marks</span>
+              </div>
+              <div class="prompt-text-block">
+                <div class="prompt-emblem">{{ cardEmblem }}</div>
+                <p class="prompt-description">{{ taskPrompt }}</p>
+              </div>
+              <div class="action-buttons-grid">
+                <button type="button" class="btn-back" @click="close">
+                  Close
+                </button>
+                <button type="button" class="btn-submit" @click="choosePhoto">
+                  Take selfie
+                </button>
+                <button type="button" class="btn-gallery choose-btn-full" @click="chooseName">
+                  Name &amp; sign
+                </button>
+              </div>
+            </div>
+
+            <template v-else-if="inputMode === 'name'">
+              <label class="name-label" for="bingo-partner-name">Their name</label>
+              <input
+                id="bingo-partner-name"
+                v-model="partnerName"
+                type="text"
+                class="name-input"
+                maxlength="120"
+                autocomplete="name"
+                placeholder="Who did you meet?"
               />
-            </div>
+              <label class="name-label" for="bingo-partner-sign">
+                Sign <span class="name-optional">(optional)</span>
+              </label>
+              <SignaturePad id="bingo-partner-sign" ref="signPadRef" />
+              <div class="action-buttons-grid">
+                <button type="button" class="btn-back" :disabled="processing" @click="handleGoBack">
+                  Go Back
+                </button>
+                <button
+                  type="button"
+                  class="btn-submit"
+                  :disabled="!canSubmitName"
+                  @click="submitName"
+                >
+                  Submit
+                </button>
+              </div>
+            </template>
 
-            <!-- Captured Image Preview -->
-            <div v-else class="preview-wrapper">
-              <img
-                :src="capturedUrl!"
-                alt="Captured selfie preview"
-                class="captured-preview-img"
-              />
-              <div class="preview-overlay"></div>
-            </div>
+            <template v-else>
+              <!-- Live Camera (if no capture blob) -->
+              <div v-if="!capturedBlob" class="camera-wrapper">
+                <SelfieCamera
+                  ref="cameraRef"
+                  @capture="onSelfieCapture"
+                  @error="(m) => { error = m }"
+                />
+              </div>
 
-            <!-- Action Buttons Grid -->
-            <div class="action-buttons-grid">
-              <button
-                type="button"
-                class="btn-back"
-                :disabled="processing"
-                @click="handleGoBack"
-              >
-                Go Back
-              </button>
+              <!-- Captured Image Preview -->
+              <div v-else class="preview-wrapper">
+                <img
+                  :src="capturedUrl!"
+                  alt="Captured selfie preview"
+                  class="captured-preview-img"
+                />
+                <div class="preview-overlay"></div>
+              </div>
 
-              <button
-                v-if="capturedBlob"
-                type="button"
-                class="btn-submit"
-                :disabled="processing"
-                @click="submitCapturedSelfie"
-              >
-                Submit
-              </button>
-              <button
-                v-else
-                type="button"
-                class="btn-gallery"
-                :disabled="processing"
-                @click="triggerGallery"
-              >
-                Gallery
-              </button>
-            </div>
+              <!-- Action Buttons Grid -->
+              <div class="action-buttons-grid">
+                <button
+                  type="button"
+                  class="btn-back"
+                  :disabled="processing"
+                  @click="handleGoBack"
+                >
+                  Go Back
+                </button>
+
+                <button
+                  v-if="capturedBlob"
+                  type="button"
+                  class="btn-submit"
+                  :disabled="processing"
+                  @click="submitCapturedSelfie"
+                >
+                  Submit
+                </button>
+                <button
+                  v-else
+                  type="button"
+                  class="btn-gallery"
+                  :disabled="processing"
+                  @click="triggerGallery"
+                >
+                  Gallery
+                </button>
+              </div>
+            </template>
           </div>
 
           <!-- Step 2: Uploading state -->
@@ -449,6 +611,86 @@ function getTaskColor(title: string) {
   font-size: 1.05rem;
   font-weight: 800;
   line-height: 1.4;
+}
+
+.detail-body-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 1.25rem;
+}
+.points-badge-row {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+.points-badge {
+  display: inline-flex;
+  padding: 0.35rem 1rem;
+  border-radius: 9999px;
+  background-color: #f1f5f9;
+  border: 1.5px solid #cbd5e1;
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: #475569;
+}
+.prompt-text-block {
+  width: 100%;
+  background-color: #ffffff;
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+  text-align: center;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+.prompt-emblem {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+.prompt-description {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.choose-btn-full {
+  grid-column: 1 / -1;
+}
+.name-label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #475569;
+}
+.name-optional {
+  font-weight: 600;
+  text-transform: none;
+  color: #94a3b8;
+}
+.name-input {
+  width: 100%;
+  margin-bottom: 1rem;
+  border-radius: 1rem;
+  border: 2px solid #e2e8f0;
+  background: #ffffff;
+  padding: 0.9rem 1rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+  box-sizing: border-box;
+}
+.name-input:focus {
+  outline: none;
+  border-color: #14b8a6;
 }
 
 /* --- Camera & Preview wrappers --- */

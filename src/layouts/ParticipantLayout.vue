@@ -174,14 +174,17 @@ function leaveEvent() {
           aria-label="Leaderboard"
         >
           <div class="mobile-bottom-sheet__handle" aria-hidden="true" />
-          <h2 class="text-lg font-extrabold text-slate-800">Leaderboard</h2>
-          <p class="mt-1 text-xs text-slate-400">Ranked by score, then tasks, then finish time</p>
+          <h2 class="text-lg font-extrabold text-slate-800">
+            {{ eventStore.isCompetition ? 'Leaderboard' : 'Participants' }}
+          </h2>
+          <p v-if="eventStore.isCompetition" class="mt-1 text-xs text-slate-400">Ranked by score, then tasks, then finish time</p>
+          <p v-else class="mt-1 text-xs text-slate-400">Players who have joined this event</p>
 
           <div class="mt-4">
             <p v-if="lbLoading" class="text-center text-sm text-slate-400 py-4">Loading…</p>
             <p v-else-if="lbError" class="text-sm text-red-500 py-2">{{ lbError }}</p>
             <p v-else-if="!lbEntries.length" class="text-sm text-slate-400 py-4 text-center">
-              No scores yet. Complete challenges to appear on the board.
+              No players yet.
             </p>
             <ol v-else class="space-y-2">
               <li
@@ -193,7 +196,7 @@ function leaveEvent() {
                   : 'bg-slate-50'"
               >
                 <!-- Position badge -->
-                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-base font-black shadow-sm">
+                <span v-if="eventStore.isCompetition" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-base font-black shadow-sm">
                   <span v-if="index < 3">{{ medal(index + 1) }}</span>
                   <span v-else class="text-slate-600">{{ index + 1 }}</span>
                 </span>
