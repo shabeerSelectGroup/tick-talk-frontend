@@ -85,7 +85,9 @@ function submit() {
           <div>
             <h2 class="text-lg font-bold">Bulk upload tasks</h2>
             <p class="admin-muted mt-1 text-sm">
-              Import many tasks at once from a file or pasted list. Duplicates are skipped.
+              Import many tasks at once from a file or pasted list. Task order in the file is
+              preserved. Existing titles are matched and moved into that order; new lines are
+              appended after tasks not in the file.
             </p>
           </div>
 

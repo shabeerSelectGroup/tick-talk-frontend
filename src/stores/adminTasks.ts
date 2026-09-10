@@ -15,6 +15,7 @@ export const useAdminTasksStore = defineStore('adminTasks', () => {
           params: { include_inactive: includeInactive },
         })
       )
+      tasks.value.sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)
     } finally {
       loading.value = false
     }
@@ -42,6 +43,14 @@ export const useAdminTasksStore = defineStore('adminTasks', () => {
   async function deleteTask(eventId: number, taskId: number) {
     await unwrap(await api.delete(`/admin/events/${eventId}/tasks/${taskId}`))
     tasks.value = tasks.value.filter((t) => t.id !== taskId)
+  }
+
+  async function deleteTasks(eventId: number, taskIds: number[]) {
+    for (const taskId of taskIds) {
+      await unwrap(await api.delete(`/admin/events/${eventId}/tasks/${taskId}`))
+    }
+    const remove = new Set(taskIds)
+    tasks.value = tasks.value.filter((t) => !remove.has(t.id))
   }
 
   async function reorderTasks(eventId: number, taskIds: number[]) {
@@ -77,6 +86,7 @@ export const useAdminTasksStore = defineStore('adminTasks', () => {
     createTask,
     updateTask,
     deleteTask,
+    deleteTasks,
     reorderTasks,
     bulkImport,
     moveTask,

@@ -501,6 +501,30 @@
   box-shadow: var(--admin-shadow-lg);
 }
 
+.admin-shell .admin-drag-handle {
+  display: inline-flex;
+  cursor: grab;
+  color: #94a3b8;
+  padding: 0.25rem;
+  user-select: none;
+}
+.admin-shell .admin-drag-handle:active {
+  cursor: grabbing;
+}
+.admin-shell .admin-table-row--dragging {
+  opacity: 0.45;
+}
+.admin-shell .admin-table-row--drop-target {
+  outline: 2px dashed #6366f1;
+  outline-offset: -2px;
+  background: #eef2ff;
+}
+.admin-shell .admin-table-checkbox {
+  height: 1rem;
+  width: 1rem;
+  accent-color: var(--admin-primary);
+}
+
 @media (max-width: 1023px) {
   .admin-shell .admin-sidebar {
     transform: translateX(-100%);

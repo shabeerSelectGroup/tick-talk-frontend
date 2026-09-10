@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Server-side deploy for TickTalk frontend (Vite + nginx static dist).
+# Prefer GitHub Actions (.github/workflows/deploy.yml): builds in CI and uploads dist.
+# This script is a manual fallback only.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
